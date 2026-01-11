@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-// URL base de tu backend (Asegúrate que sea la correcta)
+// URL base de tu backend
 const API_URL = 'https://costos-backend.onrender.com/api/insumos';
 
 function App() {
@@ -13,8 +13,9 @@ function App() {
   const [modoCrearGlobal, setModoCrearGlobal] = useState(false) 
   const [modoEditarGlobal, setModoEditarGlobal] = useState(null) 
   
-  // Estado del formulario (Ahora incluye tipoUnidad)
-  // Tipos: 'PESO', 'VOLUMEN', 'UNIDAD'
+  // NUEVO ESTADO: Para controlar el modal de eliminación
+  const [idAEliminar, setIdAEliminar] = useState(null)
+
   const [formGlobal, setFormGlobal] = useState({ 
     nombre: '', 
     precioPorKg: '', 
@@ -35,12 +36,10 @@ function App() {
   const agregarAReceta = (insumo) => {
     if (itemsReceta.find(item => item.id === insumo.id)) return; 
     
-    // Determinamos la unidad inicial según el tipo
     let unidadInicial = 'gr';
     if (insumo.tipoUnidad === 'VOLUMEN') unidadInicial = 'ml';
     if (insumo.tipoUnidad === 'UNIDAD') unidadInicial = 'un';
 
-    // Si es antiguo y no tiene tipo, asumimos PESO
     const tipoReal = insumo.tipoUnidad || 'PESO';
 
     const nuevoItem = { 
@@ -48,7 +47,7 @@ function App() {
       cantidad: 0, 
       precioReceta: insumo.precioPorKg,
       tipoUnidad: tipoReal,
-      unidadUso: unidadInicial // Aquí guardamos si está usando gr, kg, ml, L, etc.
+      unidadUso: unidadInicial
     }
     setItemsReceta([...itemsReceta, nuevoItem])
     setMostrarModal(false)
@@ -66,12 +65,10 @@ function App() {
     setItemsReceta(nuevosItems)
   }
 
-  // Función mágica para cambiar de gr a Kg o ml a L al hacer clic
   const alternarUnidad = (id) => {
     const nuevosItems = itemsReceta.map(item => {
       if (item.id === id) {
         let nuevaUnidad = item.unidadUso;
-        // Lógica de rotación
         if (item.tipoUnidad === 'PESO') {
             nuevaUnidad = item.unidadUso === 'gr' ? 'kg' : 'gr';
         } else if (item.tipoUnidad === 'VOLUMEN') {
@@ -87,18 +84,15 @@ function App() {
   const calcularTotalFila = (item) => {
     const cantidad = parseFloat(item.cantidad) || 0;
     const precio = parseFloat(item.precioReceta) || 0;
-
-    // Factores de división según la unidad que esté usando el usuario
     if (item.unidadUso === 'gr' || item.unidadUso === 'ml') {
         return (cantidad * precio) / 1000;
     }
-    // Si es kg, L o un, es directo (multiplicar por 1)
     return cantidad * precio;
   }
 
   const granTotal = itemsReceta.reduce((acc, item) => acc + calcularTotalFila(item), 0)
 
-  // --- LÓGICA DE ALMACÉN ---
+  // --- LÓGICA DE ALMACÉN Y CRUD ---
   const insumosFiltrados = dbInsumos.filter(item => 
     item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase())
   )
@@ -126,11 +120,20 @@ function App() {
     })
   }
 
-  const eliminarDeBD = (e, id) => {
+  // PASO 1: Abrir el modal de confirmación en lugar de window.confirm
+  const pedirConfirmacionEliminar = (e, id) => {
     e.stopPropagation();
-    if (window.confirm("¿Eliminar permanentemente de la Base de Datos?")) {
-      fetch(`${API_URL}/${id}`, { method: 'DELETE' }).then(() => cargarInventario())
-    }
+    setIdAEliminar(id); // Guardamos el ID que queremos borrar y se abre el modal
+  }
+
+  // PASO 2: Ejecutar la eliminación real cuando le dan a "Sí"
+  const confirmarEliminacion = () => {
+    if (!idAEliminar) return;
+    fetch(`${API_URL}/${idAEliminar}`, { method: 'DELETE' })
+      .then(() => {
+          cargarInventario();
+          setIdAEliminar(null); // Cerramos el modal
+      })
   }
 
   const activarEdicionGlobal = (e, item) => {
@@ -157,11 +160,10 @@ function App() {
     display: 'flex', flexDirection: 'column',
   }
 
-  // Helper para mostrar etiqueta bonita
   const getLabelPrecio = (tipo) => {
       if (tipo === 'VOLUMEN') return 'Precio x Litro';
       if (tipo === 'UNIDAD') return 'Precio x Unidad';
-      return 'Precio x Kg'; // Default PESO
+      return 'Precio x Kg'; 
   }
 
   return (
@@ -174,7 +176,7 @@ function App() {
           <p className="small opacity-75 mb-0">Calculadora de Recetas</p>
         </div>
 
-        {/* CONTENIDO PRINCIPAL SCROLLABLE */}
+        {/* LISTA RECETA */}
         <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '100px'}}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
@@ -187,12 +189,9 @@ function App() {
               {itemsReceta.map(item => (
                 <div key={item.id} className="card border-0 shadow-sm rounded-4 overflow-hidden">
                   <div className="card-body p-3 d-flex align-items-center justify-content-between">
-                    
-                    {/* Nombre y Precio Unitario */}
                     <div style={{flex: 1}}>
                       <h6 className="fw-bold mb-1 text-dark">{item.nombre}</h6>
                       <div className="d-flex align-items-center gap-1">
-                        {/* Etiqueta dinámica: Precio x kg, x L, etc */}
                         <small className="text-muted" style={{fontSize: '0.70rem'}}>
                              {item.tipoUnidad === 'VOLUMEN' ? 'Precio x L' : 
                               item.tipoUnidad === 'UNIDAD' ? 'Precio x Un' : 
@@ -207,8 +206,6 @@ function App() {
                         />
                       </div>
                     </div>
-
-                    {/* Input de Cantidad con Unidad Clickable */}
                     <div className="mx-2 text-center" style={{width: '80px'}}>
                       <input 
                         type="number" 
@@ -218,7 +215,6 @@ function App() {
                         onChange={(e) => actualizarItemReceta(item.id, 'cantidad', e.target.value)}
                         style={{fontSize: '1.1rem'}}
                       />
-                      {/* UNIDAD CLICKABLE (Lo que pediste) */}
                       <small 
                         className="text-muted fw-bold" 
                         style={{fontSize: '0.75rem', cursor: item.tipoUnidad !== 'UNIDAD' ? 'pointer' : 'default', userSelect: 'none'}}
@@ -228,8 +224,6 @@ function App() {
                         {item.tipoUnidad !== 'UNIDAD' && <span style={{fontSize:'0.6rem'}}> ↻</span>}
                       </small>
                     </div>
-
-                    {/* Subtotal y Eliminar */}
                     <div className="text-end" style={{minWidth: '70px'}}>
                       <div className="fw-bold text-dark fs-6">
                         {calcularTotalFila(item).toFixed(2)}
@@ -240,7 +234,6 @@ function App() {
                         Eliminar
                       </button>
                     </div>
-
                   </div>
                 </div>
               ))}
@@ -270,7 +263,7 @@ function App() {
 
       </div>
 
-      {/* --- MODAL --- */}
+      {/* --- MODAL PRINCIPAL (BUSCAR / CREAR / EDITAR) --- */}
       {mostrarModal && (
         <div className="modal d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)'}}>
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto" style={{maxWidth: '450px', width: '95%'}}>
@@ -278,7 +271,10 @@ function App() {
               
               <div className="modal-header border-0 pb-0">
                 <h5 className="modal-title fw-bold text-primary">
-                  {modoCrearGlobal ? 'Nuevo Insumo' : 'Buscar Insumo'}
+                  {/* AQUÍ ESTÁ EL CAMBIO DEL TÍTULO DINÁMICO */}
+                  {modoCrearGlobal 
+                    ? (modoEditarGlobal ? 'Modificar Insumo' : 'Nuevo Insumo') 
+                    : 'Buscar Insumo'}
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setMostrarModal(false)}></button>
               </div>
@@ -286,18 +282,15 @@ function App() {
               <div className="modal-body">
                 {modoCrearGlobal ? (
                   <div className="p-2">
-                      {/* Nombre */}
                       <div className="form-floating mb-3">
                         <input type="text" className="form-control rounded-3" id="floatingName" placeholder="Nombre" autoFocus
                           value={formGlobal.nombre} onChange={e => setFormGlobal({...formGlobal, nombre: e.target.value})} />
                         <label htmlFor="floatingName">Nombre del Insumo</label>
                       </div>
 
-                      {/* Combo de Tipo y Precio */}
                       <div className="mb-4">
                           <label className="form-label small text-muted ms-1">Tipo de Medida</label>
                           <div className="input-group">
-                            {/* EL COMBO DE TRES PARTES */}
                             <select 
                                 className="form-select bg-light fw-bold" 
                                 value={formGlobal.tipoUnidad}
@@ -317,7 +310,9 @@ function App() {
                       </div>
 
                       <div className="d-grid gap-2">
-                        <button className="btn btn-primary btn-lg rounded-pill shadow-sm" onClick={guardarEnBD}>Guardar Insumo</button>
+                        <button className="btn btn-primary btn-lg rounded-pill shadow-sm" onClick={guardarEnBD}>
+                            {modoEditarGlobal ? 'Guardar Cambios' : 'Guardar Insumo'}
+                        </button>
                         <button className="btn btn-light btn-lg rounded-pill" onClick={() => { setModoCrearGlobal(false); setModoEditarGlobal(null); }}>Cancelar</button>
                       </div>
                   </div>
@@ -360,7 +355,7 @@ function App() {
                             <button className="btn btn-sm btn-light rounded-circle shadow-sm text-primary" 
                               onClick={(e) => activarEdicionGlobal(e, insumo)}>✏️</button>
                             <button className="btn btn-sm btn-light rounded-circle shadow-sm text-danger" 
-                              onClick={(e) => eliminarDeBD(e, insumo.id)}>🗑️</button>
+                              onClick={(e) => pedirConfirmacionEliminar(e, insumo.id)}>🗑️</button>
                           </div>
                         </div>
                       ))}
@@ -372,6 +367,32 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* --- NUEVO MODAL DE CONFIRMACIÓN DE ELIMINAR --- */}
+      {idAEliminar && (
+        <div className="modal d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060}}>
+          <div className="modal-dialog modal-dialog-centered mx-auto" style={{maxWidth: '350px', width: '90%'}}>
+            <div className="modal-content rounded-4 shadow-lg border-0 p-3 text-center">
+              <div className="modal-body">
+                <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🗑️</div>
+                <h5 className="fw-bold mb-2">¿Eliminar Insumo?</h5>
+                <p className="text-muted small mb-4">
+                  Esta acción no se puede deshacer y borrará el insumo de tu base de datos permanentemente.
+                </p>
+                <div className="d-flex gap-2 justify-content-center">
+                  <button className="btn btn-light rounded-pill px-4 fw-bold" onClick={() => setIdAEliminar(null)}>
+                    Cancelar
+                  </button>
+                  <button className="btn btn-danger rounded-pill px-4 fw-bold" onClick={confirmarEliminacion}>
+                    Sí, Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
