@@ -90,22 +90,26 @@ function App() {
 
   const granTotal = itemsReceta.reduce((acc, item) => acc + calcularTotalFila(item), 0)
 
-  // --- LÓGICA DE ALMACÉN Y CRUD ---
-  const insumosFiltrados = dbInsumos.filter(item => 
-    item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase())
-  )
+  // --- LÓGICA DE ALMACÉN Y CRUD (MEJORADA) ---
+  const insumosFiltrados = dbInsumos.filter(item => {
+      // 1. Filtrar por texto
+      const coincideTexto = item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase());
+      
+      // 2. Filtrar si YA ESTÁ en la receta (Solución a tu pedido)
+      const yaEstaEnReceta = itemsReceta.some(recetaItem => recetaItem.id === item.id);
 
-  // --- FUNCIÓN DE LIMPIEZA MEJORADA ---
-  // Elimina espacios extra al medio, inicio y final. Pone Mayúscula inicial.
+      // Solo mostramos si coincide el texto Y NO está en la receta
+      return coincideTexto && !yaEstaEnReceta;
+  })
+
+  // --- FUNCIÓN DE LIMPIEZA ---
   const limpiarTexto = (texto) => {
     if (!texto) return '';
-    // Reemplaza múltiples espacios por uno solo y quita los de los bordes
     const textoLimpio = texto.replace(/\s+/g, ' ').trim();
     if (textoLimpio.length === 0) return '';
     return textoLimpio.charAt(0).toUpperCase() + textoLimpio.slice(1);
   }
 
-  // Se ejecuta cuando el usuario termina de escribir (pierde el foco)
   const handleBlurNombre = () => {
       const nombreCorregido = limpiarTexto(formGlobal.nombre);
       setFormGlobal(prev => ({ ...prev, nombre: nombreCorregido }));
@@ -114,7 +118,6 @@ function App() {
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
     
-    // Aseguramos la limpieza antes de enviar, por si acaso
     const nombreFinal = limpiarTexto(formGlobal.nombre);
 
     const method = modoEditarGlobal ? 'PUT' : 'POST';
@@ -163,33 +166,21 @@ function App() {
     setModoCrearGlobal(true);
   }
 
-  // --- ESTILOS VISUALES ---
+  // --- ESTILOS VISUALES (LAYOUT CORREGIDO) ---
   const containerStyle = {
-    // CAMBIO CLAVE: Usamos fixed e inset 0 para clavar la app a la pantalla del móvil
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
+    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
     backgroundColor: '#f0f2f5',
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    overflow: 'hidden'
+    display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'
   }
 
   const appFrameStyle = {
-    width: '100%', 
-    maxWidth: '480px', 
-    height: '100%', 
-    // maxHeight eliminado para que en móvil ocupe todo real
+    width: '100%', maxWidth: '480px', height: '100%',
     backgroundColor: '#fff', 
     borderRadius: window.innerWidth > 480 ? '25px' : '0px',
     boxShadow: '0 20px 50px rgba(0,0,0,0.15)', 
     overflow: 'hidden', 
     position: 'relative',
-    display: 'flex', 
-    flexDirection: 'column',
+    display: 'flex', flexDirection: 'column', // FLEX COLUMNA: Clave del éxito
   }
 
   const getLabelPrecio = (tipo) => {
@@ -202,15 +193,18 @@ function App() {
     <div style={containerStyle}>
       <div style={appFrameStyle} className="app-frame">
         
-        {/* HEADER */}
+        {/* HEADER (Flex Shrink 0: No se encoge) */}
         <div className="bg-primary text-white p-4 text-center shadow-sm" style={{flexShrink: 0}}>
           <h4 className="fw-bold mb-0">🍰 Costos Repostería</h4>
           <p className="small opacity-75 mb-0">Calculadora de Recetas</p>
         </div>
 
-        {/* LISTA RECETA */}
-        {/* CAMBIO CLAVE: paddingBottom aumentado a 250px para asegurar visibilidad total */}
-        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '250px'}}>
+        {/* LISTA RECETA (Flex Grow 1: Ocupa todo el espacio disponible) */}
+        {/* Overflow Auto: El scroll ocurre AQUÍ dentro, no en toda la página */}
+        <div className="flex-grow-1 p-3 overflow-auto" style={{
+            // Solo un pequeño padding abajo para que el botón flotante (+) no tape el último delete
+            paddingBottom: '80px' 
+        }}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
               <span style={{fontSize: '3rem'}}>🥣</span>
@@ -274,17 +268,25 @@ function App() {
           )}
         </div>
 
-        {/* FOOTER TOTAL */}
+        {/* FOOTER TOTAL (Flex Shrink 0: Bloque sólido al final) */}
+        {/* Ya NO es position: absolute. Ahora es parte del flujo natural */}
         <div className="bg-white border-top p-3 shadow-lg d-flex justify-content-between align-items-center" 
-             style={{position: 'absolute', bottom: 0, width: '100%', zIndex: 100}}>
+             style={{flexShrink: 0, zIndex: 100}}>
           <span className="text-muted fw-bold">TOTAL FINAL:</span>
           <span className="text-success fw-bolder fs-2">S/ {granTotal.toFixed(2)}</span>
         </div>
 
         {/* BOTÓN FLOTANTE (+) */}
+        {/* Este sí se mantiene absoluto para flotar sobre la lista */}
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
-          style={{ position: 'absolute', bottom: '90px', right: '20px', width: '60px', height: '60px', zIndex: 105, fontSize: '2rem' }}
+          style={{ 
+              position: 'absolute', 
+              bottom: '90px', // Justo encima del footer (que mide aprox 70-80px)
+              right: '20px', 
+              width: '60px', height: '60px', 
+              zIndex: 105, fontSize: '2rem' 
+          }}
           onClick={() => {
             setMostrarModal(true);
             setModoCrearGlobal(false);
@@ -315,7 +317,6 @@ function App() {
                 {modoCrearGlobal ? (
                   <div className="p-2">
                       <div className="form-floating mb-3">
-                        {/* INPUT CON EVENTO ONBLUR AÑADIDO */}
                         <input type="text" className="form-control rounded-3" id="floatingName" placeholder="Nombre" autoFocus
                           value={formGlobal.nombre} 
                           onChange={e => setFormGlobal({...formGlobal, nombre: e.target.value})}
@@ -373,6 +374,13 @@ function App() {
                     </div>
 
                     <div className="list-group list-group-flush">
+                      {/* Aquí se renderiza la lista filtrada SIN los items ya agregados */}
+                      {insumosFiltrados.length === 0 && (
+                          <div className="text-center text-muted p-3">
+                              {terminoBusqueda ? 'No se encontraron insumos' : 'Escribe para buscar...'}
+                          </div>
+                      )}
+
                       {insumosFiltrados.map(insumo => (
                         <div key={insumo.id} 
                              className="list-group-item d-flex justify-content-between align-items-center py-3 border-bottom-0 rounded-3 mb-2 bg-light-hover"
