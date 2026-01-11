@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 // URL base de tu backend
-const API_URL = 'http://localhost:8080/api/insumos';
+const API_URL = 'https://costos-backend.onrender.com/api/insumos';
 
 function App() {
   // --- ESTADOS ---
