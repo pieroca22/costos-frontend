@@ -95,24 +95,33 @@ function App() {
     item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase())
   )
 
-  // --- NUEVA FUNCIÓN PARA LIMPIAR TEXTO ---
+  // --- FUNCIÓN DE LIMPIEZA MEJORADA ---
+  // Elimina espacios extra al medio, inicio y final. Pone Mayúscula inicial.
   const limpiarTexto = (texto) => {
     if (!texto) return '';
-    const textoSinEspacios = texto.trim();
-    return textoSinEspacios.charAt(0).toUpperCase() + textoSinEspacios.slice(1);
+    // Reemplaza múltiples espacios por uno solo y quita los de los bordes
+    const textoLimpio = texto.replace(/\s+/g, ' ').trim();
+    if (textoLimpio.length === 0) return '';
+    return textoLimpio.charAt(0).toUpperCase() + textoLimpio.slice(1);
+  }
+
+  // Se ejecuta cuando el usuario termina de escribir (pierde el foco)
+  const handleBlurNombre = () => {
+      const nombreCorregido = limpiarTexto(formGlobal.nombre);
+      setFormGlobal(prev => ({ ...prev, nombre: nombreCorregido }));
   }
 
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
     
-    // APLICAMOS LA LIMPIEZA AQUÍ (Mayúscula + Trim)
-    const nombreFormateado = limpiarTexto(formGlobal.nombre);
+    // Aseguramos la limpieza antes de enviar, por si acaso
+    const nombreFinal = limpiarTexto(formGlobal.nombre);
 
     const method = modoEditarGlobal ? 'PUT' : 'POST';
     const url = modoEditarGlobal ? `${API_URL}/${modoEditarGlobal}` : API_URL;
 
     const payload = { 
-        nombre: nombreFormateado, 
+        nombre: nombreFinal, 
         precioPorKg: parseFloat(formGlobal.precioPorKg),
         tipoUnidad: formGlobal.tipoUnidad
     };
@@ -156,16 +165,31 @@ function App() {
 
   // --- ESTILOS VISUALES ---
   const containerStyle = {
-    // CAMBIO 1: Usamos 'dvh' para que se adapte mejor a móviles
-    width: '100vw', height: '100dvh', backgroundColor: '#f0f2f5',
-    display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'
+    // CAMBIO CLAVE: Usamos fixed e inset 0 para clavar la app a la pantalla del móvil
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f2f5',
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    overflow: 'hidden'
   }
 
   const appFrameStyle = {
-    width: '100%', maxWidth: '480px', height: '100%', maxHeight: '900px',
-    backgroundColor: '#fff', borderRadius: window.innerWidth > 480 ? '25px' : '0px',
-    boxShadow: '0 20px 50px rgba(0,0,0,0.15)', overflow: 'hidden', position: 'relative',
-    display: 'flex', flexDirection: 'column',
+    width: '100%', 
+    maxWidth: '480px', 
+    height: '100%', 
+    // maxHeight eliminado para que en móvil ocupe todo real
+    backgroundColor: '#fff', 
+    borderRadius: window.innerWidth > 480 ? '25px' : '0px',
+    boxShadow: '0 20px 50px rgba(0,0,0,0.15)', 
+    overflow: 'hidden', 
+    position: 'relative',
+    display: 'flex', 
+    flexDirection: 'column',
   }
 
   const getLabelPrecio = (tipo) => {
@@ -185,8 +209,8 @@ function App() {
         </div>
 
         {/* LISTA RECETA */}
-        {/* CAMBIO 2: Aumentamos paddingBottom a 180px para que el último ítem suba más */}
-        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '180px'}}>
+        {/* CAMBIO CLAVE: paddingBottom aumentado a 250px para asegurar visibilidad total */}
+        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '250px'}}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
               <span style={{fontSize: '3rem'}}>🥣</span>
@@ -291,8 +315,12 @@ function App() {
                 {modoCrearGlobal ? (
                   <div className="p-2">
                       <div className="form-floating mb-3">
+                        {/* INPUT CON EVENTO ONBLUR AÑADIDO */}
                         <input type="text" className="form-control rounded-3" id="floatingName" placeholder="Nombre" autoFocus
-                          value={formGlobal.nombre} onChange={e => setFormGlobal({...formGlobal, nombre: e.target.value})} />
+                          value={formGlobal.nombre} 
+                          onChange={e => setFormGlobal({...formGlobal, nombre: e.target.value})}
+                          onBlur={handleBlurNombre} 
+                        />
                         <label htmlFor="floatingName">Nombre del Insumo</label>
                       </div>
 
