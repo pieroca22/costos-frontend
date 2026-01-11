@@ -12,8 +12,6 @@ function App() {
   const [terminoBusqueda, setTerminoBusqueda] = useState('')
   const [modoCrearGlobal, setModoCrearGlobal] = useState(false) 
   const [modoEditarGlobal, setModoEditarGlobal] = useState(null) 
-  
-  // NUEVO ESTADO: Para controlar el modal de eliminación
   const [idAEliminar, setIdAEliminar] = useState(null)
 
   const [formGlobal, setFormGlobal] = useState({ 
@@ -97,13 +95,24 @@ function App() {
     item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase())
   )
 
+  // --- NUEVA FUNCIÓN PARA LIMPIAR TEXTO ---
+  const limpiarTexto = (texto) => {
+    if (!texto) return '';
+    const textoSinEspacios = texto.trim();
+    return textoSinEspacios.charAt(0).toUpperCase() + textoSinEspacios.slice(1);
+  }
+
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
+    
+    // APLICAMOS LA LIMPIEZA AQUÍ (Mayúscula + Trim)
+    const nombreFormateado = limpiarTexto(formGlobal.nombre);
+
     const method = modoEditarGlobal ? 'PUT' : 'POST';
     const url = modoEditarGlobal ? `${API_URL}/${modoEditarGlobal}` : API_URL;
 
     const payload = { 
-        nombre: formGlobal.nombre, 
+        nombre: nombreFormateado, 
         precioPorKg: parseFloat(formGlobal.precioPorKg),
         tipoUnidad: formGlobal.tipoUnidad
     };
@@ -120,19 +129,17 @@ function App() {
     })
   }
 
-  // PASO 1: Abrir el modal de confirmación en lugar de window.confirm
   const pedirConfirmacionEliminar = (e, id) => {
     e.stopPropagation();
-    setIdAEliminar(id); // Guardamos el ID que queremos borrar y se abre el modal
+    setIdAEliminar(id);
   }
 
-  // PASO 2: Ejecutar la eliminación real cuando le dan a "Sí"
   const confirmarEliminacion = () => {
     if (!idAEliminar) return;
     fetch(`${API_URL}/${idAEliminar}`, { method: 'DELETE' })
       .then(() => {
           cargarInventario();
-          setIdAEliminar(null); // Cerramos el modal
+          setIdAEliminar(null);
       })
   }
 
@@ -149,7 +156,8 @@ function App() {
 
   // --- ESTILOS VISUALES ---
   const containerStyle = {
-    width: '100vw', height: '100vh', backgroundColor: '#f0f2f5',
+    // CAMBIO 1: Usamos 'dvh' para que se adapte mejor a móviles
+    width: '100vw', height: '100dvh', backgroundColor: '#f0f2f5',
     display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'
   }
 
@@ -177,7 +185,8 @@ function App() {
         </div>
 
         {/* LISTA RECETA */}
-        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '100px'}}>
+        {/* CAMBIO 2: Aumentamos paddingBottom a 180px para que el último ítem suba más */}
+        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '180px'}}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
               <span style={{fontSize: '3rem'}}>🥣</span>
@@ -263,7 +272,7 @@ function App() {
 
       </div>
 
-      {/* --- MODAL PRINCIPAL (BUSCAR / CREAR / EDITAR) --- */}
+      {/* --- MODAL PRINCIPAL --- */}
       {mostrarModal && (
         <div className="modal d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)'}}>
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto" style={{maxWidth: '450px', width: '95%'}}>
@@ -271,7 +280,6 @@ function App() {
               
               <div className="modal-header border-0 pb-0">
                 <h5 className="modal-title fw-bold text-primary">
-                  {/* AQUÍ ESTÁ EL CAMBIO DEL TÍTULO DINÁMICO */}
                   {modoCrearGlobal 
                     ? (modoEditarGlobal ? 'Modificar Insumo' : 'Nuevo Insumo') 
                     : 'Buscar Insumo'}
@@ -368,7 +376,7 @@ function App() {
         </div>
       )}
 
-      {/* --- NUEVO MODAL DE CONFIRMACIÓN DE ELIMINAR --- */}
+      {/* --- MODAL DE CONFIRMACIÓN DE ELIMINAR --- */}
       {idAEliminar && (
         <div className="modal d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060}}>
           <div className="modal-dialog modal-dialog-centered mx-auto" style={{maxWidth: '350px', width: '90%'}}>
