@@ -56,7 +56,7 @@ function App() {
   }
 
   const actualizarItemReceta = (id, campo, valor) => {
-    // VALIDACIÓN: Si es menor a 0, no hacemos nada
+    // VALIDACIÓN: No permitir negativos
     if (parseFloat(valor) < 0) return;
 
     const nuevosItems = itemsReceta.map(item => {
@@ -86,7 +86,6 @@ function App() {
     const cantidad = parseFloat(item.cantidad) || 0;
     const precio = parseFloat(item.precioReceta) || 0;
     
-    // Protección extra en cálculo (nunca negativo)
     if (cantidad < 0 || precio < 0) return 0;
 
     if (item.unidadUso === 'gr' || item.unidadUso === 'ml') {
@@ -97,7 +96,7 @@ function App() {
 
   const granTotal = itemsReceta.reduce((acc, item) => acc + calcularTotalFila(item), 0)
 
-  // --- LÓGICA DE ALMACÉN Y CRUD ---
+  // --- LÓGICA DE ALMACÉN ---
   const insumosFiltrados = dbInsumos.filter(item => {
       const coincideTexto = item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase());
       const yaEstaEnReceta = itemsReceta.some(recetaItem => recetaItem.id === item.id);
@@ -119,9 +118,7 @@ function App() {
 
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
-    
     const nombreFinal = limpiarTexto(formGlobal.nombre);
-
     const method = modoEditarGlobal ? 'PUT' : 'POST';
     const url = modoEditarGlobal ? `${API_URL}/${modoEditarGlobal}` : API_URL;
 
@@ -168,7 +165,7 @@ function App() {
     setModoCrearGlobal(true);
   }
 
-  // --- HELPER PARA BLOQUEAR SIGNO MENOS ---
+  // --- HELPER PARA BLOQUEAR NEGATIVOS ---
   const bloquearNegativos = (e) => {
     if (e.key === '-' || e.key === 'e') {
       e.preventDefault();
@@ -237,11 +234,11 @@ function App() {
                         </small>
                         <input 
                           type="number"
-                          min="0" // HTML Validacion
+                          min="0"
                           className="form-control form-control-sm border-0 p-0 bg-transparent text-primary fw-bold"
                           style={{width: '60px', fontSize: '0.85rem'}}
                           value={item.precioReceta}
-                          onKeyDown={bloquearNegativos} // Bloqueo de tecla
+                          onKeyDown={bloquearNegativos} 
                           onChange={(e) => actualizarItemReceta(item.id, 'precioReceta', e.target.value)}
                         />
                       </div>
@@ -249,11 +246,11 @@ function App() {
                     <div className="mx-2 text-center" style={{width: '80px'}}>
                       <input 
                         type="number" 
-                        min="0" // HTML Validacion
+                        min="0"
                         className="form-control text-center bg-light border-0 fw-bold"
                         placeholder="0"
                         value={item.cantidad || ''}
-                        onKeyDown={bloquearNegativos} // Bloqueo de tecla
+                        onKeyDown={bloquearNegativos} 
                         onChange={(e) => actualizarItemReceta(item.id, 'cantidad', e.target.value)}
                         style={{fontSize: '1.1rem'}}
                       />
@@ -280,7 +277,7 @@ function App() {
                 </div>
               ))}
               
-              {/* --- ESPACIADOR EXACTO --- */}
+              {/* ESPACIADOR EXACTO */}
               <div style={{height: SPACER_HEIGHT, width: '100%', flexShrink: 0}}></div>
 
             </div>
@@ -294,15 +291,23 @@ function App() {
           <span className="text-success fw-bolder fs-2">S/ {granTotal.toFixed(2)}</span>
         </div>
 
-        {/* BOTÓN FLOTANTE (+) */}
+        {/* BOTÓN FLOTANTE (+) - CENTRADO PERFECTO */}
         <button 
-          className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+          className="btn btn-primary rounded-circle shadow-lg p-0 border-0"
           style={{ 
               position: 'absolute', 
               bottom: BUTTON_BOTTOM_POS, 
               right: '20px', 
-              width: BUTTON_SIZE, height: BUTTON_SIZE, 
-              zIndex: 105, fontSize: '2rem' 
+              width: BUTTON_SIZE, 
+              height: BUTTON_SIZE, 
+              zIndex: 105, 
+              // --- MAGIA DE CENTRADO ---
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.5rem', 
+              lineHeight: '1',
+              paddingBottom: '4px' // Ajuste óptico para subir el "+"
           }}
           onClick={() => {
             setMostrarModal(true);
@@ -359,12 +364,12 @@ function App() {
 
                       <div className="form-floating mb-4">
                         <input type="number" 
-                          min="0" // HTML Validacion
+                          min="0"
                           className="form-control rounded-3" id="floatingPrice" placeholder="Precio"
                           value={formGlobal.precioPorKg} 
-                          onKeyDown={bloquearNegativos} // Bloqueo de tecla
+                          onKeyDown={bloquearNegativos} 
                           onChange={e => {
-                              if(parseFloat(e.target.value) < 0) return; // Validación Lógica
+                              if(parseFloat(e.target.value) < 0) return;
                               setFormGlobal({...formGlobal, precioPorKg: e.target.value})
                           }} 
                         />
