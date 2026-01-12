@@ -92,12 +92,9 @@ function App() {
 
   // --- LÓGICA DE ALMACÉN Y CRUD ---
   const insumosFiltrados = dbInsumos.filter(item => {
-      // 1. Coincidencia de texto
       const coincideTexto = item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase());
-      
-      // 2. FILTRO INTELIGENTE: Si ya está en la receta, NO lo mostramos en la búsqueda
+      // Filtro para NO mostrar lo que ya está en la receta
       const yaEstaEnReceta = itemsReceta.some(recetaItem => recetaItem.id === item.id);
-
       return coincideTexto && !yaEstaEnReceta;
   })
 
@@ -199,11 +196,11 @@ function App() {
         </div>
 
         {/* LISTA RECETA */}
-        {/* CAMBIO CLAVE: paddingBottom aumentado a 200px.
-            Esto crea un "colchón" invisible al final de la lista.
-            Cuando bajes todo el scroll, el último ítem quedará muy por encima del botón azul (+). */}
+        {/* --- AQUÍ ESTÁ LA SOLUCIÓN DEFINITIVA --- */}
+        {/* paddingBottom: '220px' -> Crea un espacio gigante al final. */}
+        {/* Al hacer scroll total, el último item subirá MUCHO más arriba del botón +. */}
         <div className="flex-grow-1 p-3 overflow-auto" style={{
-            paddingBottom: '200px' 
+            paddingBottom: '220px' 
         }}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
