@@ -112,7 +112,9 @@ function App() {
 
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
+    
     const nombreFinal = limpiarTexto(formGlobal.nombre);
+
     const method = modoEditarGlobal ? 'PUT' : 'POST';
     const url = modoEditarGlobal ? `${API_URL}/${modoEditarGlobal}` : API_URL;
 
@@ -193,8 +195,8 @@ function App() {
         </div>
 
         {/* LISTA RECETA */}
-        {/* Quitamos el paddingBottom de aquí y usamos el DIV espaciador abajo */}
-        <div className="flex-grow-1 p-3 overflow-auto">
+        {/* Usamos flex-grow para que ocupe todo, pero dejamos un padding abajo para que "respire" */}
+        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '20px'}}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
               <span style={{fontSize: '3rem'}}>🥣</span>
@@ -255,9 +257,9 @@ function App() {
                 </div>
               ))}
               
-              {/* --- ESPACIADOR INVISIBLE --- */}
-              {/* Este div empuja la lista hacia arriba para que el último ítem quede libre */}
-              <div style={{height: '150px', width: '100%', flexShrink: 0}}></div>
+              {/* --- ESPACIADOR FLEXIBLE --- */}
+              {/* Usamos '15vh' (15% de la altura de la pantalla) para que sea proporcional en cualquier dispositivo */}
+              <div style={{height: '15vh', minHeight: '120px', width: '100%', flexShrink: 0}}></div>
 
             </div>
           )}
@@ -271,11 +273,13 @@ function App() {
         </div>
 
         {/* BOTÓN FLOTANTE (+) */}
+        {/* Posicionado dinámicamente con 'bottom' relativo al frame */}
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
           style={{ 
               position: 'absolute', 
-              bottom: '100px', // Un poco más arriba para centrarse en el espacio vacío
+              // Esto lo coloca visualmente en el hueco que creamos con '15vh'
+              bottom: '100px', 
               right: '20px', 
               width: '60px', height: '60px', 
               zIndex: 105, fontSize: '2rem' 
