@@ -112,9 +112,7 @@ function App() {
 
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
-    
     const nombreFinal = limpiarTexto(formGlobal.nombre);
-
     const method = modoEditarGlobal ? 'PUT' : 'POST';
     const url = modoEditarGlobal ? `${API_URL}/${modoEditarGlobal}` : API_URL;
 
@@ -161,6 +159,14 @@ function App() {
     setModoCrearGlobal(true);
   }
 
+  // --- CONSTANTES DE DISEÑO (MATEMÁTICA PURA) ---
+  const FOOTER_HEIGHT = '80px';
+  // Espaciador: Botón(60) + MargenArriba(20) + MargenAbajo(20) = 100px
+  const SPACER_HEIGHT = '100px'; 
+  const BUTTON_SIZE = '60px';
+  // Posición Botón: Footer(80) + MargenAbajo(20) = 100px desde el fondo
+  const BUTTON_BOTTOM_POS = '100px'; 
+
   // --- ESTILOS VISUALES ---
   const containerStyle = {
     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -184,11 +190,6 @@ function App() {
       return 'Precio x Kg'; 
   }
 
-  // Dimensiones clave para el cálculo simétrico
-  const FOOTER_HEIGHT = '80px'; 
-  const SPACER_HEIGHT = '120px'; // Espacio vacío al final de la lista
-  const BUTTON_SIZE = '60px';
-
   return (
     <div style={containerStyle}>
       <div style={appFrameStyle} className="app-frame">
@@ -200,8 +201,9 @@ function App() {
         </div>
 
         {/* LISTA RECETA */}
-        {/* Usamos flex-grow para que ocupe todo, pero dejamos un padding abajo para que "respire" */}
-        <div className="flex-grow-1 p-3 overflow-auto" style={{paddingBottom: '20px'}}>
+        {/* CAMBIO CLAVE: Usamos 'px-3 pt-3' en vez de 'p-3' para quitar el padding bottom default */}
+        {/* Así el SPACER es el único que define el espacio final */}
+        <div className="flex-grow-1 px-3 pt-3 overflow-auto">
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
               <span style={{fontSize: '3rem'}}>🥣</span>
@@ -263,7 +265,7 @@ function App() {
               ))}
               
               {/* --- ESPACIADOR EXACTO --- */}
-              {/* Este es el hueco donde vivirá el botón */}
+              {/* 100px de altura para acomodar el botón + margenes */}
               <div style={{height: SPACER_HEIGHT, width: '100%', flexShrink: 0}}></div>
 
             </div>
@@ -277,15 +279,12 @@ function App() {
           <span className="text-success fw-bolder fs-2">S/ {granTotal.toFixed(2)}</span>
         </div>
 
-        {/* BOTÓN FLOTANTE (+) - POSICIÓN CALCULADA */}
+        {/* BOTÓN FLOTANTE (+) - POSICIÓN EXACTA */}
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
           style={{ 
               position: 'absolute', 
-              // CÁLCULO DE SIMETRÍA:
-              // Altura del footer + (Mitad del espaciador) - (Mitad del botón)
-              // 80px + 60px - 30px = 110px desde el fondo
-              bottom: `calc(${FOOTER_HEIGHT} + (${SPACER_HEIGHT} / 2) - (${BUTTON_SIZE} / 2))`, 
+              bottom: BUTTON_BOTTOM_POS, 
               right: '20px', 
               width: BUTTON_SIZE, height: BUTTON_SIZE, 
               zIndex: 105, fontSize: '2rem' 
