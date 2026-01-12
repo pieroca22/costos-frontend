@@ -56,6 +56,9 @@ function App() {
   }
 
   const actualizarItemReceta = (id, campo, valor) => {
+    // VALIDACIÓN: Si es menor a 0, no hacemos nada
+    if (parseFloat(valor) < 0) return;
+
     const nuevosItems = itemsReceta.map(item => {
       if (item.id === id) return { ...item, [campo]: valor }
       return item
@@ -82,6 +85,10 @@ function App() {
   const calcularTotalFila = (item) => {
     const cantidad = parseFloat(item.cantidad) || 0;
     const precio = parseFloat(item.precioReceta) || 0;
+    
+    // Protección extra en cálculo (nunca negativo)
+    if (cantidad < 0 || precio < 0) return 0;
+
     if (item.unidadUso === 'gr' || item.unidadUso === 'ml') {
         return (cantidad * precio) / 1000;
     }
@@ -112,7 +119,9 @@ function App() {
 
   const guardarEnBD = () => {
     if (!formGlobal.nombre || !formGlobal.precioPorKg) return;
+    
     const nombreFinal = limpiarTexto(formGlobal.nombre);
+
     const method = modoEditarGlobal ? 'PUT' : 'POST';
     const url = modoEditarGlobal ? `${API_URL}/${modoEditarGlobal}` : API_URL;
 
@@ -159,12 +168,17 @@ function App() {
     setModoCrearGlobal(true);
   }
 
-  // --- CONSTANTES DE DISEÑO (MATEMÁTICA PURA) ---
+  // --- HELPER PARA BLOQUEAR SIGNO MENOS ---
+  const bloquearNegativos = (e) => {
+    if (e.key === '-' || e.key === 'e') {
+      e.preventDefault();
+    }
+  };
+
+  // --- CONSTANTES DE DISEÑO ---
   const FOOTER_HEIGHT = '80px';
-  // Espaciador: Botón(60) + MargenArriba(20) + MargenAbajo(20) = 100px
   const SPACER_HEIGHT = '100px'; 
   const BUTTON_SIZE = '60px';
-  // Posición Botón: Footer(80) + MargenAbajo(20) = 100px desde el fondo
   const BUTTON_BOTTOM_POS = '100px'; 
 
   // --- ESTILOS VISUALES ---
@@ -201,8 +215,6 @@ function App() {
         </div>
 
         {/* LISTA RECETA */}
-        {/* CAMBIO CLAVE: Usamos 'px-3 pt-3' en vez de 'p-3' para quitar el padding bottom default */}
-        {/* Así el SPACER es el único que define el espacio final */}
         <div className="flex-grow-1 px-3 pt-3 overflow-auto">
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
@@ -225,9 +237,11 @@ function App() {
                         </small>
                         <input 
                           type="number"
+                          min="0" // HTML Validacion
                           className="form-control form-control-sm border-0 p-0 bg-transparent text-primary fw-bold"
                           style={{width: '60px', fontSize: '0.85rem'}}
                           value={item.precioReceta}
+                          onKeyDown={bloquearNegativos} // Bloqueo de tecla
                           onChange={(e) => actualizarItemReceta(item.id, 'precioReceta', e.target.value)}
                         />
                       </div>
@@ -235,9 +249,11 @@ function App() {
                     <div className="mx-2 text-center" style={{width: '80px'}}>
                       <input 
                         type="number" 
+                        min="0" // HTML Validacion
                         className="form-control text-center bg-light border-0 fw-bold"
                         placeholder="0"
                         value={item.cantidad || ''}
+                        onKeyDown={bloquearNegativos} // Bloqueo de tecla
                         onChange={(e) => actualizarItemReceta(item.id, 'cantidad', e.target.value)}
                         style={{fontSize: '1.1rem'}}
                       />
@@ -265,7 +281,6 @@ function App() {
               ))}
               
               {/* --- ESPACIADOR EXACTO --- */}
-              {/* 100px de altura para acomodar el botón + margenes */}
               <div style={{height: SPACER_HEIGHT, width: '100%', flexShrink: 0}}></div>
 
             </div>
@@ -279,7 +294,7 @@ function App() {
           <span className="text-success fw-bolder fs-2">S/ {granTotal.toFixed(2)}</span>
         </div>
 
-        {/* BOTÓN FLOTANTE (+) - POSICIÓN EXACTA */}
+        {/* BOTÓN FLOTANTE (+) */}
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
           style={{ 
@@ -343,8 +358,16 @@ function App() {
                       </div>
 
                       <div className="form-floating mb-4">
-                        <input type="number" className="form-control rounded-3" id="floatingPrice" placeholder="Precio"
-                          value={formGlobal.precioPorKg} onChange={e => setFormGlobal({...formGlobal, precioPorKg: e.target.value})} />
+                        <input type="number" 
+                          min="0" // HTML Validacion
+                          className="form-control rounded-3" id="floatingPrice" placeholder="Precio"
+                          value={formGlobal.precioPorKg} 
+                          onKeyDown={bloquearNegativos} // Bloqueo de tecla
+                          onChange={e => {
+                              if(parseFloat(e.target.value) < 0) return; // Validación Lógica
+                              setFormGlobal({...formGlobal, precioPorKg: e.target.value})
+                          }} 
+                        />
                         <label htmlFor="floatingPrice">{getLabelPrecio(formGlobal.tipoUnidad)}</label>
                       </div>
 
