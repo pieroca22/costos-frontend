@@ -90,19 +90,18 @@ function App() {
 
   const granTotal = itemsReceta.reduce((acc, item) => acc + calcularTotalFila(item), 0)
 
-  // --- LÓGICA DE ALMACÉN Y CRUD (MEJORADA) ---
+  // --- LÓGICA DE ALMACÉN Y CRUD ---
   const insumosFiltrados = dbInsumos.filter(item => {
-      // 1. Filtrar por texto
+      // 1. Coincidencia de texto
       const coincideTexto = item.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase());
       
-      // 2. Filtrar si YA ESTÁ en la receta (Solución a tu pedido)
+      // 2. FILTRO INTELIGENTE: Si ya está en la receta, NO lo mostramos en la búsqueda
       const yaEstaEnReceta = itemsReceta.some(recetaItem => recetaItem.id === item.id);
 
-      // Solo mostramos si coincide el texto Y NO está en la receta
       return coincideTexto && !yaEstaEnReceta;
   })
 
-  // --- FUNCIÓN DE LIMPIEZA ---
+  // --- LIMPIEZA DE TEXTO ---
   const limpiarTexto = (texto) => {
     if (!texto) return '';
     const textoLimpio = texto.replace(/\s+/g, ' ').trim();
@@ -166,7 +165,7 @@ function App() {
     setModoCrearGlobal(true);
   }
 
-  // --- ESTILOS VISUALES (LAYOUT CORREGIDO) ---
+  // --- ESTILOS VISUALES ---
   const containerStyle = {
     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
     backgroundColor: '#f0f2f5',
@@ -180,7 +179,7 @@ function App() {
     boxShadow: '0 20px 50px rgba(0,0,0,0.15)', 
     overflow: 'hidden', 
     position: 'relative',
-    display: 'flex', flexDirection: 'column', // FLEX COLUMNA: Clave del éxito
+    display: 'flex', flexDirection: 'column',
   }
 
   const getLabelPrecio = (tipo) => {
@@ -193,17 +192,18 @@ function App() {
     <div style={containerStyle}>
       <div style={appFrameStyle} className="app-frame">
         
-        {/* HEADER (Flex Shrink 0: No se encoge) */}
+        {/* HEADER */}
         <div className="bg-primary text-white p-4 text-center shadow-sm" style={{flexShrink: 0}}>
           <h4 className="fw-bold mb-0">🍰 Costos Repostería</h4>
           <p className="small opacity-75 mb-0">Calculadora de Recetas</p>
         </div>
 
-        {/* LISTA RECETA (Flex Grow 1: Ocupa todo el espacio disponible) */}
-        {/* Overflow Auto: El scroll ocurre AQUÍ dentro, no en toda la página */}
+        {/* LISTA RECETA */}
+        {/* CAMBIO CLAVE: paddingBottom aumentado a 200px.
+            Esto crea un "colchón" invisible al final de la lista.
+            Cuando bajes todo el scroll, el último ítem quedará muy por encima del botón azul (+). */}
         <div className="flex-grow-1 p-3 overflow-auto" style={{
-            // Solo un pequeño padding abajo para que el botón flotante (+) no tape el último delete
-            paddingBottom: '80px' 
+            paddingBottom: '200px' 
         }}>
           {itemsReceta.length === 0 ? (
             <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
@@ -268,8 +268,7 @@ function App() {
           )}
         </div>
 
-        {/* FOOTER TOTAL (Flex Shrink 0: Bloque sólido al final) */}
-        {/* Ya NO es position: absolute. Ahora es parte del flujo natural */}
+        {/* FOOTER TOTAL */}
         <div className="bg-white border-top p-3 shadow-lg d-flex justify-content-between align-items-center" 
              style={{flexShrink: 0, zIndex: 100}}>
           <span className="text-muted fw-bold">TOTAL FINAL:</span>
@@ -277,12 +276,11 @@ function App() {
         </div>
 
         {/* BOTÓN FLOTANTE (+) */}
-        {/* Este sí se mantiene absoluto para flotar sobre la lista */}
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
           style={{ 
               position: 'absolute', 
-              bottom: '90px', // Justo encima del footer (que mide aprox 70-80px)
+              bottom: '90px', 
               right: '20px', 
               width: '60px', height: '60px', 
               zIndex: 105, fontSize: '2rem' 
@@ -374,7 +372,6 @@ function App() {
                     </div>
 
                     <div className="list-group list-group-flush">
-                      {/* Aquí se renderiza la lista filtrada SIN los items ya agregados */}
                       {insumosFiltrados.length === 0 && (
                           <div className="text-center text-muted p-3">
                               {terminoBusqueda ? 'No se encontraron insumos' : 'Escribe para buscar...'}
