@@ -184,6 +184,11 @@ function App() {
       return 'Precio x Kg'; 
   }
 
+  // Dimensiones clave para el cálculo simétrico
+  const FOOTER_HEIGHT = '80px'; 
+  const SPACER_HEIGHT = '120px'; // Espacio vacío al final de la lista
+  const BUTTON_SIZE = '60px';
+
   return (
     <div style={containerStyle}>
       <div style={appFrameStyle} className="app-frame">
@@ -257,9 +262,9 @@ function App() {
                 </div>
               ))}
               
-              {/* --- ESPACIADOR FLEXIBLE --- */}
-              {/* Usamos '15vh' (15% de la altura de la pantalla) para que sea proporcional en cualquier dispositivo */}
-              <div style={{height: '15vh', minHeight: '120px', width: '100%', flexShrink: 0}}></div>
+              {/* --- ESPACIADOR EXACTO --- */}
+              {/* Este es el hueco donde vivirá el botón */}
+              <div style={{height: SPACER_HEIGHT, width: '100%', flexShrink: 0}}></div>
 
             </div>
           )}
@@ -267,21 +272,22 @@ function App() {
 
         {/* FOOTER TOTAL */}
         <div className="bg-white border-top p-3 shadow-lg d-flex justify-content-between align-items-center" 
-             style={{flexShrink: 0, zIndex: 100}}>
+             style={{flexShrink: 0, zIndex: 100, height: FOOTER_HEIGHT}}>
           <span className="text-muted fw-bold">TOTAL FINAL:</span>
           <span className="text-success fw-bolder fs-2">S/ {granTotal.toFixed(2)}</span>
         </div>
 
-        {/* BOTÓN FLOTANTE (+) */}
-        {/* Posicionado dinámicamente con 'bottom' relativo al frame */}
+        {/* BOTÓN FLOTANTE (+) - POSICIÓN CALCULADA */}
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
           style={{ 
               position: 'absolute', 
-              // Esto lo coloca visualmente en el hueco que creamos con '15vh'
-              bottom: '100px', 
+              // CÁLCULO DE SIMETRÍA:
+              // Altura del footer + (Mitad del espaciador) - (Mitad del botón)
+              // 80px + 60px - 30px = 110px desde el fondo
+              bottom: `calc(${FOOTER_HEIGHT} + (${SPACER_HEIGHT} / 2) - (${BUTTON_SIZE} / 2))`, 
               right: '20px', 
-              width: '60px', height: '60px', 
+              width: BUTTON_SIZE, height: BUTTON_SIZE, 
               zIndex: 105, fontSize: '2rem' 
           }}
           onClick={() => {
